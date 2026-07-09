@@ -16,6 +16,22 @@
   --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+body[data-theme="dark"] {
+  --bg-start: #0f172a;
+  --bg-end: #1e293b;
+  --card-bg: rgba(30, 41, 59, 0.8);
+  --text-primary: #f8fafc;
+  --text-muted: #94a3b8;
+  --accent-color: #3b82f6;
+  --accent-gradient: linear-gradient(135deg, #3b82f6, #60a5fa);
+  --accent-soft: rgba(59, 130, 246, 0.15);
+  --danger-color: #ef4444;
+  --danger-soft: rgba(239, 68, 68, 0.15);
+  --success-color: #10b981;
+  --border-color: #334155;
+  --card-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.3);
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
@@ -29,6 +45,7 @@ body {
   color: var(--text-primary);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  transition: background 0.3s ease, color 0.3s ease;
 }
 
 .app-shell {
@@ -349,4 +366,117 @@ button {
   .forms-wrapper { grid-template-columns: 1fr; }
   .expenses-table td, .expenses-table th { padding: 12px 8px; }
   .btn-icon-edit, .btn-icon-delete { padding: 6px 8px; font-size: 0.8rem; }
+}
+
+/* Control Buttons & Header Top styling */
+.header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.header-controls {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-control {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  padding: 8px 14px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+  transition: var(--transition-smooth);
+}
+
+.btn-control:hover {
+  transform: translateY(-1px);
+  border-color: var(--accent-color);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
+}
+
+/* Chart Container styling */
+.chart-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.chart-container {
+  position: relative;
+  width: 100%;
+  max-width: 320px;
+  height: 320px;
+  margin: 0 auto;
+}
+
+/* Smooth Transitions for Theme Toggle */
+.budget-form-card,
+.summary-card,
+.summary-item,
+input,
+select,
+td,
+th,
+button {
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* Print Styling */
+@media print {
+  body {
+    background: #fff !important;
+    color: #000 !important;
+  }
+  .app-shell {
+    padding: 0;
+    max-width: 100%;
+  }
+  .header-controls,
+  .forms-wrapper,
+  .form-actions,
+  .actions-cell,
+  .btn-icon-edit,
+  .btn-icon-delete,
+  #theme-toggle,
+  #export-pdf,
+  .chart-section {
+    display: none !important;
+  }
+  .budget-form-card,
+  .summary-card {
+    border: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    padding: 0 !important;
+    margin-bottom: 24px;
+  }
+  .summary-grid {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 12px !important;
+  }
+  .summary-item {
+    border: 1px solid #ccc !important;
+    background: #fafafa !important;
+    padding: 12px !important;
+  }
+  .expenses-table {
+    margin-top: 12px;
+  }
+  .expenses-table th, 
+  .expenses-table td {
+    padding: 8px !important;
+    border-bottom: 1px solid #ccc !important;
+  }
 }

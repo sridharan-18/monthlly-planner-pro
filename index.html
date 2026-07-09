@@ -9,11 +9,18 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
   <div class="app-shell">
     <header class="app-header">
-      <h1>Monthly Budget Planner</h1>
+      <div class="header-top">
+        <h1>Monthly Budget Planner</h1>
+        <div class="header-controls">
+          <button id="theme-toggle" class="btn-control" title="Toggle Dark/Light Mode" aria-label="Toggle Dark Mode">🌙</button>
+          <button id="export-pdf" class="btn-control" title="Export report to PDF" aria-label="Export to PDF">📄 PDF</button>
+        </div>
+      </div>
       <p>Keep track of your income, categorise your spending, and manage your balance.</p>
     </header>
 
@@ -41,6 +48,14 @@
             <span id="progress-status" class="status-safe">Safe</span>
           </div>
           <progress id="budget-progress" value="0" max="100"></progress>
+        </div>
+      </section>
+
+      <!-- Chart Visualization -->
+      <section class="summary-card chart-section" aria-label="Spending Chart">
+        <h2>Spending by Category</h2>
+        <div class="chart-container">
+          <canvas id="expense-chart"></canvas>
         </div>
       </section>
 

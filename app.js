@@ -2,6 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // State
   let income = parseFloat(localStorage.getItem('budget_income')) || 0;
   let expenses = JSON.parse(localStorage.getItem('budget_expenses')) || [];
+  let expenseChart = null;
 
   // DOM Elements
   const incomeForm = document.getElementById('income-form');
@@ -15,6 +16,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const cancelEditBtn = document.getElementById('cancel-edit');
   const expenseFormTitle = document.getElementById('expense-form-title');
   const submitExpenseBtn = document.getElementById('submit-expense');
+  const themeToggleBtn = document.getElementById('theme-toggle');
+  const exportPdfBtn = document.getElementById('export-pdf');
 
   // Summary Elements
   const dispIncome = document.getElementById('disp-income');
@@ -34,6 +37,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // Set default date to today
     dateInput.valueAsDate = new Date();
     if (income > 0) incomeInput.value = income;
+
+    // Initialize Theme
+    const savedTheme = localStorage.getItem('theme') || 
+      (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    applyTheme(savedTheme);
     
     updateUI();
   }
@@ -45,6 +53,34 @@ document.addEventListener('DOMContentLoaded', () => {
       currency: 'USD'
     }).format(amount);
   };
+
+  // Theme Applier
+  function applyTheme(theme) {
+    if (theme === 'dark') {
+      document.body.setAttribute('data-theme', 'dark');
+      themeToggleBtn.textContent = '☀️';
+    } else {
+      document.body.removeAttribute('data-theme');
+      themeToggleBtn.textContent = '🌙';
+    }
+    localStorage.setItem('theme', theme);
+    // Re-render chart to update colors if initialized
+    if (expenses.length > 0 && expenseChart) {
+      updateChart();
+    }
+  }
+
+  // Theme Toggle Event
+  themeToggleBtn.addEventListener('click', () => {
+    const currentTheme = localStorage.getItem('theme') || 'light';
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    applyTheme(newTheme);
+  });
+
+  // Export to PDF
+  exportPdfBtn.addEventListener('click', () => {
+    window.print();
+  });
 
   // Update Summary and Progress
   function updateSummary() {
@@ -82,6 +118,88 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  // Update Chart.js Doughnut Chart
+  function updateChart() {
+    const ctx = document.getElementById('expense-chart').getContext('2d');
+    
+    // Group expenses by category
+    const categoriesData = {};
+    expenses.forEach(exp => {
+      categoriesData[exp.category] = (categoriesData[exp.category] || 0) + exp.amount;
+    });
+
+    const labels = Object.keys(categoriesData);
+    const data = Object.values(categoriesData);
+
+    const isDark = document.body.getAttribute('data-theme') === 'dark';
+    const textColors = isDark ? '#f8fafc' : '#0f172a';
+
+    const colors = {
+      'Food': '#3b82f6',
+      'Travel': '#10b981',
+      'Rent': '#f59e0b',
+      'Entertainment': '#ec4899',
+      'Utilities': '#8b5cf6',
+      'Other': '#64748b'
+    };
+
+    const backgroundColors = labels.map(label => colors[label] || '#94a3b8');
+
+    if (expenseChart) {
+      expenseChart.destroy();
+    }
+
+    if (data.length === 0) {
+      document.querySelector('.chart-section').classList.add('hidden');
+      return;
+    } else {
+      document.querySelector('.chart-section').classList.remove('hidden');
+    }
+
+    expenseChart = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: labels,
+        datasets: [{
+          data: data,
+          backgroundColor: backgroundColors,
+          borderWidth: isDark ? 2 : 1,
+          borderColor: isDark ? '#1e293b' : '#ffffff'
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: {
+              color: textColors,
+              font: {
+                family: 'Inter',
+                weight: '500'
+              }
+            }
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                let label = context.label || '';
+                if (label) {
+                  label += ': ';
+                }
+                if (context.parsed !== null) {
+                  label += formatCurrency(context.parsed);
+                }
+                return label;
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+
   // Render Expenses Table
   function renderExpenses() {
     expensesTbody.innerHTML = '';
@@ -116,6 +234,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function updateUI() {
     updateSummary();
     renderExpenses();
+    updateChart();
     localStorage.setItem('budget_income', income);
     localStorage.setItem('budget_expenses', JSON.stringify(expenses));
   }
@@ -127,7 +246,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!isNaN(newIncome) && newIncome >= 0) {
       income = newIncome;
       updateUI();
-      // Optional visual feedback could go here
     }
   });
 
