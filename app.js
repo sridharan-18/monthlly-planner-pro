@@ -17,6 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const expenseFormTitle = document.getElementById('expense-form-title');
   const submitExpenseBtn = document.getElementById('submit-expense');
   const themeToggleBtn = document.getElementById('theme-toggle');
+  const saveDataBtn = document.getElementById('save-data');
   const exportPdfBtn = document.getElementById('export-pdf');
 
   // Summary Elements
@@ -80,6 +81,24 @@ document.addEventListener('DOMContentLoaded', () => {
   // Export to PDF
   exportPdfBtn.addEventListener('click', () => {
     window.print();
+  });
+
+  // Save Data
+  saveDataBtn.addEventListener('click', () => {
+    localStorage.setItem('budget_income', income);
+    localStorage.setItem('budget_expenses', JSON.stringify(expenses));
+    
+    // Show save confirmation
+    const originalText = saveDataBtn.textContent;
+    saveDataBtn.textContent = '✓ Saved!';
+    saveDataBtn.style.background = 'var(--success-color)';
+    saveDataBtn.style.color = '#fff';
+    
+    setTimeout(() => {
+      saveDataBtn.textContent = originalText;
+      saveDataBtn.style.background = '';
+      saveDataBtn.style.color = '';
+    }, 2000);
   });
 
   // Update Summary and Progress
