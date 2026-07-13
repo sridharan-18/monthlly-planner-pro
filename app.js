@@ -2,6 +2,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // State
   let income = parseFloat(localStorage.getItem('budget_income')) || 0;
   let expenses = JSON.parse(localStorage.getItem('budget_expenses')) || [];
+  let categoryBudgets = JSON.parse(localStorage.getItem('category_budgets')) || {};
+  let currency = localStorage.getItem('currency') || 'USD';
   let expenseChart = null;
 
   // DOM Elements
@@ -18,7 +20,16 @@ document.addEventListener('DOMContentLoaded', () => {
   const submitExpenseBtn = document.getElementById('submit-expense');
   const themeToggleBtn = document.getElementById('theme-toggle');
   const saveDataBtn = document.getElementById('save-data');
+  const exportJsonBtn = document.getElementById('export-json');
+  const importJsonBtn = document.getElementById('import-json');
   const exportPdfBtn = document.getElementById('export-pdf');
+  const currencySelect = document.getElementById('currency-select');
+  const categoryBudgetsContainer = document.getElementById('category-budgets-container');
+  const addCategoryBudgetBtn = document.getElementById('add-category-budget');
+  const filterCategory = document.getElementById('filter-category');
+  const filterDateFrom = document.getElementById('filter-date-from');
+  const filterDateTo = document.getElementById('filter-date-to');
+  const clearFiltersBtn = document.getElementById('clear-filters');
 
   // Summary Elements
   const dispIncome = document.getElementById('disp-income');
@@ -44,14 +55,39 @@ document.addEventListener('DOMContentLoaded', () => {
       (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
     applyTheme(savedTheme);
     
+    // Initialize Currency
+    currencySelect.value = currency;
+    
     updateUI();
+    renderCategoryBudgets();
   }
 
   // Format Currency
   const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-US', {
+    const currencySymbols = {
+      'USD': '$',
+      'EUR': '€',
+      'GBP': '£',
+      'INR': '₹',
+      'JPY': '¥',
+      'CAD': '$',
+      'AUD': '$'
+    };
+    
+    const symbol = currencySymbols[currency] || '$';
+    const locales = {
+      'USD': 'en-US',
+      'EUR': 'de-DE',
+      'GBP': 'en-GB',
+      'INR': 'en-IN',
+      'JPY': 'ja-JP',
+      'CAD': 'en-CA',
+      'AUD': 'en-AU'
+    };
+    
+    return new Intl.NumberFormat(locales[currency] || 'en-US', {
       style: 'currency',
-      currency: 'USD'
+      currency: currency
     }).format(amount);
   };
 
@@ -87,6 +123,8 @@ document.addEventListener('DOMContentLoaded', () => {
   saveDataBtn.addEventListener('click', () => {
     localStorage.setItem('budget_income', income);
     localStorage.setItem('budget_expenses', JSON.stringify(expenses));
+    localStorage.setItem('category_budgets', JSON.stringify(categoryBudgets));
+    localStorage.setItem('currency', currency);
     
     // Show save confirmation
     const originalText = saveDataBtn.textContent;
@@ -99,6 +137,81 @@ document.addEventListener('DOMContentLoaded', () => {
       saveDataBtn.style.background = '';
       saveDataBtn.style.color = '';
     }, 2000);
+  });
+
+  // Export JSON
+  exportJsonBtn.addEventListener('click', () => {
+    const data = {
+      income,
+      expenses,
+      categoryBudgets,
+      currency,
+      exportDate: new Date().toISOString()
+    };
+    
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `budget-export-${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+
+  // Import JSON
+  importJsonBtn.addEventListener('click', () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'application/json';
+    
+    input.onchange = (e) => {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+      
+      reader.onload = (event) => {
+        try {
+          const data = JSON.parse(event.target.result);
+          
+          if (data.income !== undefined) income = data.income;
+          if (data.expenses) expenses = data.expenses;
+          if (data.categoryBudgets) categoryBudgets = data.categoryBudgets;
+          if (data.currency) currency = data.currency;
+          
+          currencySelect.value = currency;
+          incomeInput.value = income;
+          
+          updateUI();
+          renderCategoryBudgets();
+          
+          // Show import confirmation
+          const originalText = importJsonBtn.textContent;
+          importJsonBtn.textContent = '✓ Imported!';
+          importJsonBtn.style.background = 'var(--success-color)';
+          importJsonBtn.style.color = '#fff';
+          
+          setTimeout(() => {
+            importJsonBtn.textContent = originalText;
+            importJsonBtn.style.background = '';
+            importJsonBtn.style.color = '';
+          }, 2000);
+          
+        } catch (error) {
+          alert('Error importing file. Please make sure it\'s a valid JSON file.');
+        }
+      };
+      
+      reader.readAsText(file);
+    };
+    
+    input.click();
+  });
+
+  // Currency Change
+  currencySelect.addEventListener('change', (e) => {
+    currency = e.target.value;
+    localStorage.setItem('currency', currency);
+    updateUI();
+    updateChart();
   });
 
   // Update Summary and Progress
@@ -223,15 +336,39 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderExpenses() {
     expensesTbody.innerHTML = '';
 
-    if (expenses.length === 0) {
+    // Apply filters
+    let filteredExpenses = [...expenses];
+    
+    const categoryFilter = filterCategory.value;
+    const dateFrom = filterDateFrom.value;
+    const dateTo = filterDateTo.value;
+    
+    if (categoryFilter !== 'all') {
+      filteredExpenses = filteredExpenses.filter(exp => exp.category === categoryFilter);
+    }
+    
+    if (dateFrom) {
+      filteredExpenses = filteredExpenses.filter(exp => exp.date >= dateFrom);
+    }
+    
+    if (dateTo) {
+      filteredExpenses = filteredExpenses.filter(exp => exp.date <= dateTo);
+    }
+
+    if (filteredExpenses.length === 0) {
       expensesTable.classList.add('hidden');
       emptyState.classList.remove('hidden');
+      if (expenses.length > 0) {
+        emptyState.textContent = 'No expenses match the current filters.';
+      } else {
+        emptyState.textContent = 'No expenses recorded yet. Add one above!';
+      }
     } else {
       expensesTable.classList.remove('hidden');
       emptyState.classList.add('hidden');
 
       // Sort by date descending
-      const sortedExpenses = [...expenses].sort((a, b) => new Date(b.date) - new Date(a.date));
+      const sortedExpenses = filteredExpenses.sort((a, b) => new Date(b.date) - new Date(a.date));
 
       sortedExpenses.forEach(expense => {
         const tr = document.createElement('tr');
@@ -256,6 +393,8 @@ document.addEventListener('DOMContentLoaded', () => {
     updateChart();
     localStorage.setItem('budget_income', income);
     localStorage.setItem('budget_expenses', JSON.stringify(expenses));
+    localStorage.setItem('category_budgets', JSON.stringify(categoryBudgets));
+    localStorage.setItem('currency', currency);
   }
 
   // Handle Income Submit
@@ -356,6 +495,111 @@ document.addEventListener('DOMContentLoaded', () => {
     submitExpenseBtn.textContent = 'Add Expense';
     cancelEditBtn.classList.add('hidden');
   }
+
+  // Filter Event Listeners
+  filterCategory.addEventListener('change', renderExpenses);
+  filterDateFrom.addEventListener('change', renderExpenses);
+  filterDateTo.addEventListener('change', renderExpenses);
+  
+  clearFiltersBtn.addEventListener('click', () => {
+    filterCategory.value = 'all';
+    filterDateFrom.value = '';
+    filterDateTo.value = '';
+    renderExpenses();
+  });
+
+  // Category Budgets
+  function renderCategoryBudgets() {
+    categoryBudgetsContainer.innerHTML = '';
+    
+    const categories = ['Food', 'Travel', 'Rent', 'Entertainment', 'Utilities', 'Other'];
+    
+    categories.forEach(category => {
+      const budget = categoryBudgets[category] || 0;
+      const spent = expenses
+        .filter(exp => exp.category === category)
+        .reduce((sum, exp) => sum + exp.amount, 0);
+      
+      const percentage = budget > 0 ? (spent / budget) * 100 : 0;
+      const isOverBudget = budget > 0 && spent > budget;
+      const isNearLimit = budget > 0 && percentage >= 80 && percentage < 100;
+      
+      const div = document.createElement('div');
+      div.className = 'category-budget-item';
+      div.innerHTML = `
+        <div class="category-budget-header">
+          <span class="category-name">${category}</span>
+          <div class="category-budget-actions">
+            <button class="btn-icon-edit-budget" data-category="${category}">Edit Budget</button>
+            ${budget > 0 ? `<button class="btn-icon-delete-budget" data-category="${category}">Clear</button>` : ''}
+          </div>
+        </div>
+        <div class="category-budget-progress">
+          <div class="budget-labels">
+            <span>${formatCurrency(spent)} spent</span>
+            <span>${budget > 0 ? formatCurrency(budget) + ' budget' : 'No budget set'}</span>
+          </div>
+          ${budget > 0 ? `
+            <div class="budget-progress-bar">
+              <div class="budget-progress-fill ${isOverBudget ? 'over-budget' : isNearLimit ? 'near-limit' : ''}" 
+                   style="width: ${Math.min(percentage, 100)}%"></div>
+            </div>
+            <div class="budget-status ${isOverBudget ? 'status-danger' : isNearLimit ? 'status-warning' : 'status-safe'}">
+              ${isOverBudget ? '⚠️ Over budget!' : isNearLimit ? '⚡ Near limit' : '✓ On track'}
+            </div>
+          ` : '<div class="budget-status status-muted">Set a budget to track spending</div>'}
+        </div>
+      `;
+      
+      categoryBudgetsContainer.appendChild(div);
+    });
+    
+    // Add event listeners for budget edit/delete buttons
+    document.querySelectorAll('.btn-icon-edit-budget').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const category = e.target.getAttribute('data-category');
+        const currentBudget = categoryBudgets[category] || 0;
+        const newBudget = prompt(`Set budget for ${category}:`, currentBudget);
+        
+        if (newBudget !== null) {
+          const budgetValue = parseFloat(newBudget);
+          if (!isNaN(budgetValue) && budgetValue >= 0) {
+            categoryBudgets[category] = budgetValue;
+            updateUI();
+            renderCategoryBudgets();
+          }
+        }
+      });
+    });
+    
+    document.querySelectorAll('.btn-icon-delete-budget').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const category = e.target.getAttribute('data-category');
+        if (confirm(`Clear budget for ${category}?`)) {
+          delete categoryBudgets[category];
+          updateUI();
+          renderCategoryBudgets();
+        }
+      });
+    });
+  }
+
+  addCategoryBudgetBtn.addEventListener('click', () => {
+    const category = prompt('Enter category name (Food, Travel, Rent, Entertainment, Utilities, Other):');
+    if (category && ['Food', 'Travel', 'Rent', 'Entertainment', 'Utilities', 'Other'].includes(category)) {
+      const budget = prompt(`Set budget for ${category}:`);
+      if (budget !== null) {
+        const budgetValue = parseFloat(budget);
+        if (!isNaN(budgetValue) && budgetValue >= 0) {
+          categoryBudgets[category] = budgetValue;
+          updateUI();
+          renderCategoryBudgets();
+        }
+      }
+    } else if (category) {
+      alert('Please enter a valid category name.');
+    }
+  });
 
   // Run on load
   init();

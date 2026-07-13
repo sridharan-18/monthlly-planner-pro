@@ -19,6 +19,8 @@
         <div class="header-controls">
           <button id="theme-toggle" class="btn-control" title="Toggle Dark/Light Mode" aria-label="Toggle Dark Mode">🌙</button>
           <button id="save-data" class="btn-control" title="Save data to local storage" aria-label="Save Data">💾 Save</button>
+          <button id="export-json" class="btn-control" title="Export data as JSON" aria-label="Export JSON">📤 Export</button>
+          <button id="import-json" class="btn-control" title="Import data from JSON" aria-label="Import JSON">📥 Import</button>
           <button id="export-pdf" class="btn-control" title="Export report to PDF" aria-label="Export to PDF">📄 PDF</button>
         </div>
       </div>
@@ -28,7 +30,21 @@
     <main>
       <!-- Summary Section -->
       <section class="summary-card" aria-label="Budget Overview">
-        <h2>Overview</h2>
+        <div class="section-header">
+          <h2>Overview</h2>
+          <div class="currency-selector">
+            <label for="currency-select">Currency:</label>
+            <select id="currency-select">
+              <option value="USD">USD ($)</option>
+              <option value="EUR">EUR (€)</option>
+              <option value="GBP">GBP (£)</option>
+              <option value="INR">INR (₹)</option>
+              <option value="JPY">JPY (¥)</option>
+              <option value="CAD">CAD ($)</option>
+              <option value="AUD">AUD ($)</option>
+            </select>
+          </div>
+        </div>
         <div class="summary-grid">
           <div class="summary-item">
             <span class="summary-label">Total Income</span>
@@ -110,9 +126,34 @@
         </section>
       </div>
 
+      <!-- Category Budgets -->
+      <section class="summary-card" aria-label="Category Budgets">
+        <h2>Category Budgets</h2>
+        <div id="category-budgets-container">
+          <!-- Dynamically populated by JS -->
+        </div>
+        <button id="add-category-budget" class="btn-secondary" style="margin-top: 16px;">+ Set Category Budget</button>
+      </section>
+
       <!-- Expenses List -->
       <section class="summary-card list-card" aria-label="Expenses List">
-        <h2>Recent Expenses</h2>
+        <div class="section-header">
+          <h2>Recent Expenses</h2>
+          <div class="filter-controls">
+            <select id="filter-category">
+              <option value="all">All Categories</option>
+              <option value="Food">Food</option>
+              <option value="Travel">Travel</option>
+              <option value="Rent">Rent</option>
+              <option value="Entertainment">Entertainment</option>
+              <option value="Utilities">Utilities</option>
+              <option value="Other">Other</option>
+            </select>
+            <input type="date" id="filter-date-from" placeholder="From">
+            <input type="date" id="filter-date-to" placeholder="To">
+            <button id="clear-filters" class="btn-secondary">Clear</button>
+          </div>
+        </div>
         <div class="table-responsive">
           <table class="expenses-table">
             <thead>
